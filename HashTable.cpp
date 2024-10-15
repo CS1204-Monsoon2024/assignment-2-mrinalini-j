@@ -1,167 +1,80 @@
 #include <iostream>
 #include <vector>
-#include <cmath>
-
 using namespace std;
 
 class HashTable {
 private:
-    struct Entry {
-        int key;
-        int value;
-        bool isOccupied;
-        bool isDeleted;
+    vector<vector<pair<int, int>>> table;
+    int capacity;
+    const float loadFactorThreshold;
+    int size;
 
-        Entry() : key(0), value(0), isOccupied(false), isDeleted(false) {}
-    };
-
-    vector<Entry> table;
-    int m;  // Current size of the hash table
-    int numElements;
-    const float loadFactorThreshold = 0.8;
-
-    int hash(int key) {
-        return key % m;
-    }
-
-    // Resize the hash table when load factor exceeds the threshold
-    void resize() {
-        int oldSize = m;
-        m = nextPrime(2 * m); // Resize to the next prime approximately double the size
-        vector<Entry> oldTable = table;
-        table.clear();
-        table.resize(m);
-        numElements = 0;
-
-        // Rehash all elements from the old table
-        for (int i = 0; i < oldSize; i++) {
-            if (oldTable[i].isOccupied && !oldTable[i].isDeleted) {
-                insert(oldTable[i].key, oldTable[i].value);
-            }
-        }
-    }
-
-    // Check if a number is prime
-    bool isPrime(int n) {
-        if (n <= 1) return false;
-        for (int i = 2; i * i <= n; i++) {
-            if (n % i == 0) return false;
-        }
-        return true;
-    }
-
-    // Get the next prime number greater than or equal to n
-    int nextPrime(int n) {
-        while (!isPrime(n)) {
-            n++;
-        }
-        return n;
+    // Hash function
+    int hashFunction(int key) {
+        return key % capacity;
     }
 
 public:
-    HashTable(int size) : m(size), numElements(0) {
-        table.resize(m);
+    // Constructor
+    HashTable(int capacity) : capacity(capacity), loadFactorThreshold(0.75), size(0) {
+        table.resize(capacity);
     }
 
-    // Insert a key-value pair into the hash table
-    void insert(int key, int value) {
-        if ((float)numElements / m >= loadFactorThreshold) {
-            resize();
-        }
+    // Insert function, modified to insert only the key
+    void insert(int key) {
+        int hashIndex = hashFunction(key);
 
-        int index = hash(key);
-        int i = 0;
-
-        // Quadratic probing to find an empty or deleted slot
-        while (table[(index + i * i) % m].isOccupied && !table[(index + i * i) % m].isDeleted) {
-            i++;
-            if (i == m) { // Avoid infinite loop in case the table is full
+        // Check if the key already exists in the table
+        for (auto &item : table[hashIndex]) {
+            if (item.first == key) {
+                item.second = key; // Update value if key already exists
                 return;
             }
         }
 
-        int finalIndex = (index + i * i) % m;
-        table[finalIndex].key = key;
-        table[finalIndex].value = value;
-        table[finalIndex].isOccupied = true;
-        table[finalIndex].isDeleted = false;
-        numElements++;
+        // If the key doesn't exist, insert the key and use the key as the value
+        table[hashIndex].emplace_back(key, key);
+        size++;
     }
 
-    // Search for a key in the hash table and return its value
+    // Remove a key from the hash table
+    void remove(int key) {
+        int hashIndex = hashFunction(key);
+
+        // Find the key in the bucket and remove it
+        for (auto it = table[hashIndex].begin(); it != table[hashIndex].end(); ++it) {
+            if (it->first == key) {
+                table[hashIndex].erase(it);
+                size--;
+                return;
+            }
+        }
+        cout << "Key " << key << " not found" << endl;
+    }
+
+    // Search for a key and return its value
     int search(int key) {
-        int index = hash(key);
-        int i = 0;
+        int hashIndex = hashFunction(key);
 
-        // Quadratic probing to find the key
-        while (table[(index + i * i) % m].isOccupied) {
-            int finalIndex = (index + i * i) % m;
-            if (table[finalIndex].key == key && !table[finalIndex].isDeleted) {
-                return table[finalIndex].value;
-            }
-            i++;
-            if (i == m) {
-                break;  // Avoid infinite loop
+        // Search for the key in the bucket
+        for (auto &item : table[hashIndex]) {
+            if (item.first == key) {
+                return item.second;
             }
         }
-
-        return -1;  // Key not found
+        return -1; // Return -1 if key is not found
     }
 
-    // Delete a key-value pair from the hash table
-    void erase(int key) {
-        int index = hash(key);
-        int i = 0;
-
-        // Quadratic probing to find the key
-        while (table[(index + i * i) % m].isOccupied) {
-            int finalIndex = (index + i * i) % m;
-            if (table[finalIndex].key == key && !table[finalIndex].isDeleted) {
-                table[finalIndex].isDeleted = true;
-                numElements--;
-                return;
+    // Display the hash table
+    void display() {
+        for (int i = 0; i < capacity; i++) {
+            cout << i << ": ";
+            for (auto &item : table[i]) {
+                cout << "(" << item.first << ", " << item.second << ") ";
             }
-            i++;
-            if (i == m) {
-                return;  // Avoid infinite loop
-            }
-        }
-    }
-
-    // Print the contents of the hash table for debugging
-    void printTable() {
-        for (int i = 0; i < m; i++) {
-            if (table[i].isOccupied && !table[i].isDeleted) {
-                cout << "Index " << i << ": Key = " << table[i].key << ", Value = " << table[i].value << endl;
-            } else if (table[i].isDeleted) {
-                cout << "Index " << i << ": Deleted" << endl;
-            } else {
-                cout << "Index " << i << ": Empty" << endl;
-            }
+            cout << endl;
         }
     }
 };
-
-int main() {
-    HashTable ht(7);  // Initial size is 7 (a prime number)
-
-    ht.insert(1);
-    ht.printTable();
-    ht.insert(6);
-    ht.printTable();
-    ht.insert(15);
-    ht.printTable(); 
-    ht.insert(25);
-    ht.printTable();
-    ht.remove(15);
-    ht.printTable();
-    ht.insert(29);  
-    ht.printTable(); 
-
-    int find = ht.search(22);
-    std::cout << "Found at:" << find << std::endl;
-
-    return 0;
-}
 
 
