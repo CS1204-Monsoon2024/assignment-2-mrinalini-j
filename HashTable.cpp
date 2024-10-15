@@ -24,6 +24,7 @@ private:
         return key % m;
     }
 
+    // Resize the hash table when load factor exceeds the threshold
     void resize() {
         int oldSize = m;
         m = nextPrime(2 * m); // Resize to the next prime approximately double the size
@@ -40,6 +41,7 @@ private:
         }
     }
 
+    // Check if a number is prime
     bool isPrime(int n) {
         if (n <= 1) return false;
         for (int i = 2; i * i <= n; i++) {
@@ -48,6 +50,7 @@ private:
         return true;
     }
 
+    // Get the next prime number greater than or equal to n
     int nextPrime(int n) {
         while (!isPrime(n)) {
             n++;
@@ -60,6 +63,7 @@ public:
         table.resize(m);
     }
 
+    // Insert a key-value pair into the hash table
     void insert(int key, int value) {
         if ((float)numElements / m >= loadFactorThreshold) {
             resize();
@@ -68,6 +72,7 @@ public:
         int index = hash(key);
         int i = 0;
 
+        // Quadratic probing to find an empty or deleted slot
         while (table[(index + i * i) % m].isOccupied && !table[(index + i * i) % m].isDeleted) {
             i++;
             if (i == m) { // Avoid infinite loop in case the table is full
@@ -83,10 +88,12 @@ public:
         numElements++;
     }
 
+    // Search for a key in the hash table and return its value
     int search(int key) {
         int index = hash(key);
         int i = 0;
 
+        // Quadratic probing to find the key
         while (table[(index + i * i) % m].isOccupied) {
             int finalIndex = (index + i * i) % m;
             if (table[finalIndex].key == key && !table[finalIndex].isDeleted) {
@@ -101,10 +108,12 @@ public:
         return -1;  // Key not found
     }
 
+    // Delete a key-value pair from the hash table
     void erase(int key) {
         int index = hash(key);
         int i = 0;
 
+        // Quadratic probing to find the key
         while (table[(index + i * i) % m].isOccupied) {
             int finalIndex = (index + i * i) % m;
             if (table[finalIndex].key == key && !table[finalIndex].isDeleted) {
@@ -119,15 +128,40 @@ public:
         }
     }
 
+    // Print the contents of the hash table for debugging
     void printTable() {
         for (int i = 0; i < m; i++) {
             if (table[i].isOccupied && !table[i].isDeleted) {
                 cout << "Index " << i << ": Key = " << table[i].key << ", Value = " << table[i].value << endl;
+            } else if (table[i].isDeleted) {
+                cout << "Index " << i << ": Deleted" << endl;
             } else {
                 cout << "Index " << i << ": Empty" << endl;
             }
         }
     }
 };
+
+int main() {
+    HashTable ht(7);  // Initial size is 7 (a prime number)
+
+    ht.insert(10, 100);
+    ht.insert(20, 200);
+    ht.insert(30, 300);
+    ht.insert(40, 400);
+    ht.insert(50, 500);
+    ht.insert(60, 600);
+
+    ht.printTable();
+
+    cout << "\nSearch for key 30: " << ht.search(30) << endl;
+    cout << "Search for key 50: " << ht.search(50) << endl;
+
+    ht.erase(30);
+    cout << "\nAfter deleting key 30:\n";
+    ht.printTable();
+
+    return 0;
+}
 
 
