@@ -145,21 +145,21 @@ public:
 int main() {
     HashTable ht(7);  // Initial size is 7 (a prime number)
 
-    ht.insert(10, 100);
-    ht.insert(20, 200);
-    ht.insert(30, 300);
-    ht.insert(40, 400);
-    ht.insert(50, 500);
-    ht.insert(60, 600);
-
+    ht.insert(1);
     ht.printTable();
-
-    cout << "\nSearch for key 30: " << ht.search(30) << endl;
-    cout << "Search for key 50: " << ht.search(50) << endl;
-
-    ht.erase(30);
-    cout << "\nAfter deleting key 30:\n";
+    ht.insert(6);
     ht.printTable();
+    ht.insert(15);
+    ht.printTable(); 
+    ht.insert(25);
+    ht.printTable();
+    ht.remove(15);
+    ht.printTable();
+    ht.insert(29);  
+    ht.printTable(); 
+
+    int find = ht.search(22);
+    std::cout << "Found at:" << find << std::endl;
 
     return 0;
 }
