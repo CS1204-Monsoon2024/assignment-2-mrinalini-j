@@ -51,6 +51,8 @@ private:
                 int newKey = table[i].key;
                 int j = 0;
                 int newIndex;
+
+                // Use quadratic probing for inserting into newTable
                 do {
                     newIndex = quadraticProbe(newKey, j) % newSize;  // Adjusted to use newSize
                     j++;
