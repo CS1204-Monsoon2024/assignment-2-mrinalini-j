@@ -14,7 +14,7 @@ private:
     std::vector<HashEntry> table;
     int size;
     int count;
-    double loadFactorThreshold = 0.8;  // Removed 'const' to fix the deleted assignment operator issue
+    double loadFactorThreshold = 0.8;
 
     int hash(int key) {
         return key % size;
@@ -42,7 +42,7 @@ private:
     }
 
     void resize() {
-        int newSize = nextPrime(2 * size); // Find the next prime number for the new size
+        int newSize = nextPrime(2 * size);
         std::vector<HashEntry> newTable(newSize);
 
         // Rehash all current keys into the new table
@@ -52,7 +52,7 @@ private:
                 int j = 0;
                 int newIndex;
                 do {
-                    newIndex = (newKey + j * j) % newSize;
+                    newIndex = quadraticProbe(newKey, j) % newSize;  // Adjusted to use newSize
                     j++;
                 } while (newTable[newIndex].key != -1);
 
@@ -66,12 +66,10 @@ private:
     }
 
 public:
-    // Constructor
     HashTable(int initialSize) : size(nextPrime(initialSize)), count(0) {
         table.resize(size);
     }
 
-    // Insert method
     void insert(int key) {
         if ((double)count / size >= loadFactorThreshold) {
             resize();
@@ -91,7 +89,6 @@ public:
         }
     }
 
-    // Search method
     int search(int key) {
         int i = 0;
         int index;
@@ -106,7 +103,6 @@ public:
         return (table[index].key == key) ? index : -1;  // Return index if found, else -1
     }
 
-    // Remove method
     void remove(int key) {
         int i = 0;
         int index;
@@ -124,13 +120,12 @@ public:
         }
     }
 
-    // Print table method for debugging
     void printTable() {
         for (int i = 0; i < size; i++) {
             if (table[i].key != -1 && !table[i].isDeleted) {
-                std::cout << i << " -> " << table[i].key << std::endl;
+                std::cout << table[i].key << " ";
             } else {
-                std::cout << i << " -> " << "Empty" << std::endl;
+                std::cout << "- ";
             }
         }
         std::cout << std::endl;
