@@ -2,147 +2,136 @@
 #include <vector>
 #include <cmath>
 
-using namespace std;
-
 class HashTable {
 private:
-    struct Entry {
+    struct HashEntry {
         int key;
-        int value;
-        bool isDeleted;  // To handle lazy deletion
-        
-        Entry() : key(-1), value(0), isDeleted(false) {}  // Default entry
+        bool isDeleted;
+
+        HashEntry() : key(-1), isDeleted(false) {}
     };
 
-    vector<Entry> table;    // The hash table
-    int size;               // Current number of entries
-    int capacity;           // Maximum capacity before resizing
-    const float loadFactorThreshold = 0.8; // Threshold for resizing
+    std::vector<HashEntry> table;
+    int size;
+    int count;
+    const double loadFactorThreshold = 0.8;
 
-    // Hash function: h(k) = k % m
-    int hash(int key) const {
-        return key % capacity;
+    int hash(int key) {
+        return key % size;
     }
 
-    // Resize the table when the load factor exceeds the threshold
+    int quadraticProbe(int key, int i) {
+        return (hash(key) + i * i) % size;
+    }
+
+    bool isPrime(int num) {
+        if (num <= 1) return false;
+        if (num == 2) return true;
+        if (num % 2 == 0) return false;
+        for (int i = 3; i * i <= num; i += 2) {
+            if (num % i == 0) return false;
+        }
+        return true;
+    }
+
+    int nextPrime(int num) {
+        while (!isPrime(num)) {
+            num++;
+        }
+        return num;
+    }
+
     void resize() {
-        int oldCapacity = capacity;
-        capacity = capacity * 2; // Double the size
-        vector<Entry> oldTable = table;  // Save the old table
+        int newSize = nextPrime(2 * size); // Find the next prime number for the new size
+        std::vector<HashEntry> newTable(newSize);
 
-        table.clear();
-        table.resize(capacity);   // Create a new table with increased size
-        size = 0;  // Reset size to 0, we will re-insert existing entries
+        // Rehash all current keys into the new table
+        for (int i = 0; i < size; i++) {
+            if (table[i].key != -1 && !table[i].isDeleted) {
+                int newKey = table[i].key;
+                int j = 0;
+                int newIndex;
+                do {
+                    newIndex = (newKey + j * j) % newSize;
+                    j++;
+                } while (newTable[newIndex].key != -1);
 
-        for (int i = 0; i < oldCapacity; i++) {
-            if (oldTable[i].key != -1 && !oldTable[i].isDeleted) {
-                insert(oldTable[i].key, oldTable[i].value);  // Rehash the entries
+                newTable[newIndex].key = newKey;
+                newTable[newIndex].isDeleted = false;
             }
         }
+
+        table = newTable;
+        size = newSize;
     }
 
 public:
-    // Constructor: initialize hash table with initial capacity
-    HashTable(int initialCapacity = 8) : capacity(initialCapacity), size(0) {
-        table.resize(capacity);
+    HashTable(int initialSize) {
+        size = nextPrime(initialSize);
+        table.resize(size);
+        count = 0;
     }
 
-    // Insert a key-value pair into the hash table
-    void insert(int key, int value) {
-        if (float(size) / capacity > loadFactorThreshold) {
-            resize();  // Resize if load factor exceeds threshold
+    void insert(int key) {
+        if ((double)count / size >= loadFactorThreshold) {
+            resize();
         }
 
-        int hashIndex = hash(key);  // Calculate initial hash index
         int i = 0;
-
-        while (table[(hashIndex + i * i) % capacity].key != -1 && 
-               !table[(hashIndex + i * i) % capacity].isDeleted) {
-            if (table[(hashIndex + i * i) % capacity].key == key) {
-                // Update existing key
-                table[(hashIndex + i * i) % capacity].value = value;
-                return;
-            }
+        int index;
+        do {
+            index = quadraticProbe(key, i);
             i++;
-        }
+        } while (table[index].key != -1 && !table[index].isDeleted && table[index].key != key);
 
-        // Insert new key-value pair
-        int insertIndex = (hashIndex + i * i) % capacity;
-        table[insertIndex].key = key;
-        table[insertIndex].value = value;
-        table[insertIndex].isDeleted = false;
-        size++;
+        if (table[index].key == -1 || table[index].isDeleted) {
+            table[index].key = key;
+            table[index].isDeleted = false;
+            count++;
+        }
     }
 
-    // Search for a key in the hash table and return its value
-    int search(int key) const {
-        int hashIndex = hash(key);
+    int search(int key) {
         int i = 0;
-
-        while (table[(hashIndex + i * i) % capacity].key != -1) {
-            int probeIndex = (hashIndex + i * i) % capacity;
-            if (table[probeIndex].key == key && !table[probeIndex].isDeleted) {
-                return table[probeIndex].value;
-            }
+        int index;
+        do {
+            index = quadraticProbe(key, i);
             i++;
-        }
+            if (table[index].key == -1 && !table[index].isDeleted) {
+                return -1;  // Key not found
+            }
+        } while (table[index].key != key && i < size);
 
-        return -1;  // Key not found
+        return (table[index].key == key) ? index : -1;  // Return index if found, else -1
     }
 
-    // Delete a key from the hash table
     void remove(int key) {
-        int hashIndex = hash(key);
         int i = 0;
-
-        while (table[(hashIndex + i * i) % capacity].key != -1) {
-            int probeIndex = (hashIndex + i * i) % capacity;
-            if (table[probeIndex].key == key && !table[probeIndex].isDeleted) {
-                table[probeIndex].isDeleted = true;  // Lazy deletion
-                size--;
-                return;
-            }
+        int index;
+        do {
+            index = quadraticProbe(key, i);
             i++;
-        }
+            if (table[index].key == -1 && !table[index].isDeleted) {
+                return;  // Key not found, nothing to remove
+            }
+        } while (table[index].key != key && i < size);
 
-        cout << "Key not found." << endl;  // If key not found
+        if (table[index].key == key) {
+            table[index].isDeleted = true;
+            count--;
+        }
     }
 
-    // Display the hash table
-    void display() const {
-        for (int i = 0; i < capacity; i++) {
+    void printTable() {
+        for (int i = 0; i < size; i++) {
             if (table[i].key != -1 && !table[i].isDeleted) {
-                cout << "Index " << i << ": Key = " << table[i].key 
-                     << ", Value = " << table[i].value << endl;
+                std::cout << i << " -> " << table[i].key << std::endl;
+            } else {
+                std::cout << i << " -> " << "Empty" << std::endl;
             }
         }
+        std::cout << std::endl;
     }
 };
 
-// Main function to demonstrate hash table operations
-int main() {
-    HashTable ht(8);
-
-    // Insert values
-    ht.insert(10, 100);
-    ht.insert(20, 200);
-    ht.insert(30, 300);
-    ht.insert(25, 250);
-    ht.insert(15, 150);
-    ht.insert(5, 50);
-
-    cout << "Hash Table after insertion:" << endl;
-    ht.display();
-
-    // Search for a key
-    int searchKey = 25;
-    cout << "Value for key " << searchKey << ": " << ht.search(searchKey) << endl;
-
-    // Remove a key
-    ht.remove(15);
-    cout << "Hash Table after deleting key 15:" << endl;
-    ht.display();
-
-    return 0;
-}
 
