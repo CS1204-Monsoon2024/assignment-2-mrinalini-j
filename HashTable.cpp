@@ -136,9 +136,3 @@ public:
         std::cout << std::endl;
     }
 };
-
-int main() {
-    // No changes should be made here according to your instructions
-    return 0;
-}
-
