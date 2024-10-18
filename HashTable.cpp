@@ -1,3 +1,19 @@
+#ifndef HASHTABLE_H
+#define HASHTABLE_H
+
+class HashTable {
+public:
+    HashTable(int size);    // Constructor
+    void insert(int key, int value);    // Insert key-value pair
+    void printTable() const;            // Print table
+private:
+    int* table;    // Pointer to the hash table
+    int size;
+    const float loadFactorThreshold = 0.75;  // Threshold for resizing
+};
+
+#endif // HASHTABLE_H
+
 #include "HashTable.h"
 #include <iostream>
 
