@@ -14,7 +14,7 @@ private:
     std::vector<HashEntry> table;
     int size;
     int count;
-    const double loadFactorThreshold = 0.8;
+    double loadFactorThreshold = 0.8;  // Removed 'const' to fix the deleted assignment operator issue
 
     int hash(int key) {
         return key % size;
