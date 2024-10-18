@@ -56,14 +56,14 @@ private:
                 do {
                     newIndex = quadraticProbe(newKey, j) % newSize;  // Adjusted to use newSize
                     j++;
-                } while (newTable[newIndex].key != -1); // Stop if we find an empty slot
+                } while (newTable[newIndex].key != -1 && !newTable[newIndex].isDeleted); // Stop if we find an empty or deleted slot
 
                 newTable[newIndex].key = newKey;
                 newTable[newIndex].isDeleted = false;
             }
         }
 
-        table = newTable;
+        table = std::move(newTable);
         size = newSize;
     }
 
@@ -89,8 +89,7 @@ public:
                 count++;
                 return; // Exit after inserting
             }
-            // If we find the key already exists, we do nothing
-        } while (table[index].key != key && i < size);
+        } while (i < size);
     }
 
     int search(int key) {
@@ -135,3 +134,4 @@ public:
         std::cout << std::endl;
     }
 };
+
