@@ -56,7 +56,7 @@ private:
                 do {
                     newIndex = quadraticProbe(newKey, j) % newSize;  // Adjusted to use newSize
                     j++;
-                } while (newTable[newIndex].key != -1);
+                } while (newTable[newIndex].key != -1); // Stop if we find an empty slot
 
                 newTable[newIndex].key = newKey;
                 newTable[newIndex].isDeleted = false;
@@ -82,13 +82,15 @@ public:
         do {
             index = quadraticProbe(key, i);
             i++;
-        } while (table[index].key != -1 && !table[index].isDeleted && table[index].key != key);
-
-        if (table[index].key == -1 || table[index].isDeleted) {
-            table[index].key = key;
-            table[index].isDeleted = false;
-            count++;
-        }
+            // If the slot is empty or deleted, we can insert
+            if (table[index].key == -1 || table[index].isDeleted) {
+                table[index].key = key;
+                table[index].isDeleted = false;
+                count++;
+                return; // Exit after inserting
+            }
+            // If we find the key already exists, we do nothing
+        } while (table[index].key != key && i < size);
     }
 
     int search(int key) {
