@@ -42,29 +42,28 @@ private:
     }
 
     void resize() {
-        int newSize = nextPrime(2 * size);
-        std::vector<HashEntry> newTable(newSize);
+    int newSize = nextPrime(2 * size);
+    std::vector<HashEntry> newTable(newSize);
 
-        // Rehash all current keys into the new table
-        for (int i = 0; i < size; i++) {
-            if (table[i].key != -1 && !table[i].isDeleted) {
-                int newKey = table[i].key;
-                int j = 0;
-                int newIndex;
-                do {
-                    newIndex = quadraticProbe(newKey, j) % newSize;  // Adjusted to use newSize
-                    j++;
-                } while (newTable[newIndex].key != -1);
+    // Rehash all current keys into the new table
+    for (int i = 0; i < size; i++) {
+        if (table[i].key != -1 && !table[i].isDeleted) {
+            int newKey = table[i].key;
+            int j = 0;
+            int newIndex;
+            do {
+                newIndex = (newKey % newSize + j * j) % newSize;  // Use newSize here
+                j++;
+            } while (newTable[newIndex].key != -1);
 
-                newTable[newIndex].key = newKey;
-                newTable[newIndex].isDeleted = false;
-            }
+            newTable[newIndex].key = newKey;
+            newTable[newIndex].isDeleted = false;
         }
-
-        table = newTable;
-        size = newSize;
     }
 
+    table = newTable;
+    size = newSize;
+}
 public:
     HashTable(int initialSize) : size(nextPrime(initialSize)), count(0) {
         table.resize(size);
