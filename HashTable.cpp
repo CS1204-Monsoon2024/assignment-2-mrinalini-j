@@ -16,14 +16,17 @@ private:
     int count;
     double loadFactorThreshold = 0.8;
 
+    // Hash function to map keys
     int hash(int key) {
         return key % size;
     }
 
+    // Quadratic probing function
     int quadraticProbe(int key, int i) {
         return (hash(key) + i * i) % size;
     }
 
+    // Check if a number is prime
     bool isPrime(int num) {
         if (num <= 1) return false;
         if (num == 2) return true;
@@ -34,6 +37,7 @@ private:
         return true;
     }
 
+    // Get the next prime number greater than the current number
     int nextPrime(int num) {
         while (!isPrime(num)) {
             num++;
@@ -41,6 +45,7 @@ private:
         return num;
     }
 
+    // Resize and rehash the hash table
     void resize() {
         int newSize = nextPrime(2 * size);
         std::vector<HashEntry> newTable(newSize);
@@ -66,10 +71,12 @@ private:
     }
 
 public:
+    // Constructor for initializing the hash table
     HashTable(int initialSize) : size(nextPrime(initialSize)), count(0) {
         table.resize(size);
     }
 
+    // Insert function using quadratic probing and handling deleted slots
     void insert(int key) {
         if ((double)count / size >= loadFactorThreshold) {
             resize();  // Resize the table if the load factor threshold is exceeded
@@ -100,6 +107,7 @@ public:
         }
     }
 
+    // Search function using quadratic probing
     int search(int key) {
         int i = 0;
         int index;
@@ -114,6 +122,7 @@ public:
         return (table[index].key == key) ? index : -1;  // Return index if found, else -1
     }
 
+    // Remove function marking a key as deleted
     void remove(int key) {
         int i = 0;
         int index;
@@ -131,6 +140,7 @@ public:
         }
     }
 
+    // Print the contents of the hash table
     void printTable() {
         for (int i = 0; i < size; i++) {
             if (table[i].key != -1 && !table[i].isDeleted) {
