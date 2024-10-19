@@ -69,41 +69,32 @@ public:
     }
 
     void insert(int key) {
-        if (search(key) != -1) {
-            std::cout << "Duplicate key insertion is not allowed" << std::endl;
-            return;
-        }
-
-        if ((double)(count + 1) / size >= loadFactorThreshold) {
-            resize();
+        if ((double)count / size >= loadFactorThreshold) {
+            resize();  // Resize the table if the load factor threshold is exceeded
         }
 
         int i = 0;
         int index;
-        int firstAvailableIndex = -1;
-
-        while (i < size) {
+        int firstDeletedIndex = -1;  // Track the first deleted index found
+        do {
             index = quadraticProbe(key, i);
-
-            if (table[index].key == -1 && !table[index].isDeleted) {
-                if (firstAvailableIndex == -1) {
-                    firstAvailableIndex = index;
-                }
-                break;  
-            } else if (table[index].isDeleted) {
-                if (firstAvailableIndex == -1) {
-                    firstAvailableIndex = index;
-                }
-            }
             i++;
-        }
 
-        if (firstAvailableIndex != -1) {
-            table[firstAvailableIndex].key = key;
-            table[firstAvailableIndex].isDeleted = false;
+            // Track the first deleted index to use later if necessary
+            if (table[index].isDeleted && firstDeletedIndex == -1) {
+                firstDeletedIndex = index;
+            }
+        } while (table[index].key != -1 && !table[index].isDeleted && table[index].key != key);
+
+        // If we find an empty slot, or a previously deleted slot, insert the key
+        if (table[index].key == -1 || table[index].isDeleted) {
+            // Prefer inserting into the first deleted index, if available
+            if (firstDeletedIndex != -1) {
+                index = firstDeletedIndex;
+            }
+            table[index].key = key;
+            table[index].isDeleted = false;
             count++;
-        } else {
-            std::cout << "Max probing limit reached!" << std::endl;
         }
     }
 
