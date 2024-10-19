@@ -1,6 +1,5 @@
 #include <iostream>
 #include <vector>
-#include <cmath>
 
 struct HashEntry {
     int key;
@@ -58,7 +57,7 @@ public:
 
                 // Use quadratic probing for inserting into newTable
                 do {
-                    newIndex = (hash(newKey) + j * j) % newSize;  // Adjusted to use newSize
+                    newIndex = (hash(newKey) + j * j) % newSize;
                     j++;
                 } while (newTable[newIndex].key != -1); // Stop if we find an empty slot
 
@@ -132,4 +131,5 @@ public:
         std::cout << std::endl;
     }
 };
+
 
