@@ -64,12 +64,16 @@ private:
     table = newTable;
     size = newSize;
 }
+
+    table = newTable;
+    size = newSize;
+}
 public:
     HashTable(int initialSize) : size(nextPrime(initialSize)), count(0) {
         table.resize(size);
     }
 
-    void insert(int key) {
+void insert(int key) {
     if ((double)count / size >= loadFactorThreshold) {
         resize();  // Resize the table if the load factor threshold is exceeded
     }
@@ -98,7 +102,6 @@ public:
         count++;
     }
 }
-
 
     int search(int key) {
         int i = 0;
