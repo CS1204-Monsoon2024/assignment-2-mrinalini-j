@@ -57,7 +57,7 @@ private:
                 int j = 0;
                 int newIndex;
                 do {
-                    newIndex = (newKey % newSize + j * j) % newSize;  // Use newSize here
+                    newIndex = quadraticProbe(newKey, j) % newSize;  // Use newSize here
                     j++;
                 } while (newTable[newIndex].key != -1);
 
@@ -84,26 +84,25 @@ public:
 
         int i = 0;
         int index;
-        int firstDeletedIndex = -1;  // Track the first deleted index found
-        do {
+        while (true) {
             index = quadraticProbe(key, i);
             i++;
 
-            // Track the first deleted index to use later if necessary
-            if (table[index].isDeleted && firstDeletedIndex == -1) {
-                firstDeletedIndex = index;
+            // If we find an empty slot or a previously deleted slot, insert the key
+            if (table[index].key == -1 || table[index].isDeleted) {
+                table[index].key = key;
+                table[index].isDeleted = false;
+                if (table[index].isDeleted) {
+                    count++; // Only increase count if it's a new insertion
+                }
+                count++;
+                return;
             }
-        } while (table[index].key != -1 && !table[index].isDeleted && table[index].key != key);
 
-        // If we find an empty slot, or a previously deleted slot, insert the key
-        if (table[index].key == -1 || table[index].isDeleted) {
-            // Prefer inserting into the first deleted index, if available
-            if (firstDeletedIndex != -1) {
-                index = firstDeletedIndex;
+            // If we find the same key, we do not insert
+            if (table[index].key == key) {
+                return; // Duplicate key, do nothing
             }
-            table[index].key = key;
-            table[index].isDeleted = false;
-            count++;
         }
     }
 
@@ -111,32 +110,37 @@ public:
     int search(int key) {
         int i = 0;
         int index;
-        do {
+        while (true) {
             index = quadraticProbe(key, i);
             i++;
+
             if (table[index].key == -1 && !table[index].isDeleted) {
                 return -1;  // Key not found
             }
-        } while (table[index].key != key && i < size);
 
-        return (table[index].key == key) ? index : -1;  // Return index if found, else -1
+            if (table[index].key == key && !table[index].isDeleted) {
+                return index;  // Return index if found
+            }
+        }
     }
 
     // Remove function marking a key as deleted
     void remove(int key) {
         int i = 0;
         int index;
-        do {
+        while (true) {
             index = quadraticProbe(key, i);
             i++;
+
             if (table[index].key == -1 && !table[index].isDeleted) {
                 return;  // Key not found, nothing to remove
             }
-        } while (table[index].key != key && i < size);
 
-        if (table[index].key == key) {
-            table[index].isDeleted = true;
-            count--;
+            if (table[index].key == key && !table[index].isDeleted) {
+                table[index].isDeleted = true;
+                count--;
+                return;  // Key found and marked as deleted
+            }
         }
     }
 
