@@ -1,158 +1,154 @@
-#include <iostream>
-#include <vector>
-#include <cmath>
+#include "HashTable.h"
 
-class HashTable {
-private:
-    struct HashEntry {
-        int key;
-        bool isDeleted;
+// Hash function to map keys
+int HashTable::hash(int key) {
+    return key % size;
+}
 
-        HashEntry() : key(-1), isDeleted(false) {}
-    };
+// Quadratic probing function
+int HashTable::quadraticProbe(int key, int i) {
+    return (hash(key) + i * i) % size;
+}
 
-    std::vector<HashEntry> table;
-    int size;
-    int count;
-    double loadFactorThreshold = 0.8;
-
-    // Hash function to map keys
-    int hash(int key) {
-        return key % size;
+// Check if a number is prime
+bool HashTable::isPrime(int num) {
+    if (num <= 1) return false;
+    if (num == 2) return true;
+    if (num % 2 == 0) return false;
+    for (int i = 3; i * i <= num; i += 2) {
+        if (num % i == 0) return false;
     }
+    return true;
+}
 
-    // Quadratic probing function
-    int quadraticProbe(int key, int i) {
-        return (hash(key) + i * i) % size;
+// Get the next prime number greater than the current number
+int HashTable::nextPrime(int num) {
+    while (!isPrime(num)) {
+        num++;
     }
+    return num;
+}
 
-    // Check if a number is prime
-    bool isPrime(int num) {
-        if (num <= 1) return false;
-        if (num == 2) return true;
-        if (num % 2 == 0) return false;
-        for (int i = 3; i * i <= num; i += 2) {
-            if (num % i == 0) return false;
-        }
-        return true;
-    }
+// Resize and rehash the hash table
+void HashTable::resize() {
+    int newSize = nextPrime(2 * size);
+    std::vector<HashEntry> newTable(newSize);
 
-    // Get the next prime number greater than the current number
-    int nextPrime(int num) {
-        while (!isPrime(num)) {
-            num++;
-        }
-        return num;
-    }
-
-    // Resize and rehash the hash table
-    void resize() {
-        int newSize = nextPrime(2 * size);
-        std::vector<HashEntry> newTable(newSize);
-
-        // Rehash all current keys into the new table
-        for (int i = 0; i < size; i++) {
-            if (table[i].key != -1 && !table[i].isDeleted) {
-                int newKey = table[i].key;
-                int j = 0;
-                int newIndex;
-                do {
-                    newIndex = quadraticProbe(newKey, j) % newSize;  // Use newSize here
-                    j++;
-                } while (newTable[newIndex].key != -1);
-
-                newTable[newIndex].key = newKey;
-                newTable[newIndex].isDeleted = false;
-            }
-        }
-
-        table = newTable;
-        size = newSize;
-    }
-
-public:
-    // Constructor for initializing the hash table
-    HashTable(int initialSize) : size(nextPrime(initialSize)), count(0) {
-        table.resize(size);
-    }
-
-    // Insert function using quadratic probing and handling deleted slots
-    void insert(int key) {
-        if ((double)count / size >= loadFactorThreshold) {
-            resize();  // Resize the table if the load factor threshold is exceeded
-        }
-
-        int i = 0;
-        int index;
-        while (true) {
-            index = quadraticProbe(key, i);
-            i++;
-
-            // If we find an empty slot or a previously deleted slot, insert the key
-            if (table[index].key == -1 || table[index].isDeleted) {
-                table[index].key = key;
-                table[index].isDeleted = false;
-                if (table[index].isDeleted) {
-                    count++; // Only increase count if it's a new insertion
-                }
-                count++;
-                return;
-            }
-
-            // If we find the same key, we do not insert
-            if (table[index].key == key) {
-                return; // Duplicate key, do nothing
-            }
+    // Rehash all current keys into the new table
+    for (int i = 0; i < size; i++) {
+        if (table[i].key != -1 && !table[i].isDeleted) {
+            int newKey = table[i].key;
+            int j = 0;
+            int newIndex;
+            do {
+                newIndex = (newKey % newSize + j * j) % newSize;
+                j++;
+            } while (newTable[newIndex].key != -1);
+            newTable[newIndex].key = newKey;
+            newTable[newIndex].isDeleted = false;
         }
     }
 
-    // Search function using quadratic probing
-    int search(int key) {
-        int i = 0;
-        int index;
-        while (true) {
-            index = quadraticProbe(key, i);
-            i++;
+    table = newTable;
+    size = newSize;
+}
 
-            if (table[index].key == -1 && !table[index].isDeleted) {
-                return -1;  // Key not found
-            }
+// Constructor for initializing the hash table
+HashTable::HashTable(int initialSize) : size(nextPrime(initialSize)), count(0) {
+    table.resize(size);
+}
 
-            if (table[index].key == key && !table[index].isDeleted) {
-                return index;  // Return index if found
-            }
-        }
+// Insert function using quadratic probing and handling deleted slots
+void HashTable::insert(int key) {
+    if (search(key) != -1) {
+        std::cout << "Duplicate key insertion is not allowed" << std::endl;
+        return;
     }
 
-    // Remove function marking a key as deleted
-    void remove(int key) {
-        int i = 0;
-        int index;
-        while (true) {
-            index = quadraticProbe(key, i);
-            i++;
-
-            if (table[index].key == -1 && !table[index].isDeleted) {
-                return;  // Key not found, nothing to remove
-            }
-
-            if (table[index].key == key && !table[index].isDeleted) {
-                table[index].isDeleted = true;
-                count--;
-                return;  // Key found and marked as deleted
-            }
-        }
+    if ((double)(count + 1) / size >= loadFactorThreshold) {
+        resize();
     }
 
-    // Print the contents of the hash table
-    void printTable() {
-        for (int i = 0; i < size; i++) {
-            if (table[i].key != -1 && !table[i].isDeleted) {
-                std::cout << table[i].key << " ";
-            } else {
-                std::cout << "- ";
+    int i = 0;
+    int index;
+    int firstAvailableIndex = -1;
+
+    while (i < size) {
+        index = quadraticProbe(key, i);
+
+        if (table[index].key == -1 && !table[index].isDeleted) {
+            if (firstAvailableIndex == -1) {
+                firstAvailableIndex = index;
+            }
+            break;  // No need to probe further
+        } else if (table[index].isDeleted) {
+            if (firstAvailableIndex == -1) {
+                firstAvailableIndex = index;
             }
         }
-        std::cout << std::endl;
+        i++;
     }
-};
+
+    if (firstAvailableIndex != -1) {
+        table[firstAvailableIndex].key = key;
+        table[firstAvailableIndex].isDeleted = false;
+        count++;
+    } else {
+        std::cout << "Max probing limit reached!" << std::endl;
+    }
+}
+
+// Search function using quadratic probing
+int HashTable::search(int key) {
+    int i = 0;
+    int index;
+
+    while (i < size) {
+        index = quadraticProbe(key, i);
+
+        if (table[index].key == -1 && !table[index].isDeleted) {
+            return -1;  // Key not found
+        } else if (table[index].key == key && !table[index].isDeleted) {
+            return index;  // Key found
+        }
+        i++;
+    }
+    return -1;  // Key not found after full probing
+}
+
+// Remove function marking a key as deleted
+void HashTable::remove(int key) {
+    int i = 0;
+    int index;
+    bool found = false;
+
+    while (i < size) {
+        index = quadraticProbe(key, i);
+
+        if (table[index].key == -1 && !table[index].isDeleted) {
+            break;  // Key not found
+        } else if (table[index].key == key && !table[index].isDeleted) {
+            table[index].isDeleted = true;
+            count--;
+            found = true;
+            break;
+        }
+        i++;
+    }
+
+    if (!found) {
+        std::cout << "Element not found" << std::endl;
+    }
+}
+
+// Print the contents of the hash table
+void HashTable::printTable() {
+    for (int i = 0; i < size; i++) {
+        if (table[i].key != -1 && !table[i].isDeleted) {
+            std::cout << table[i].key << " ";
+        } else {
+            std::cout << "- ";
+        }
+    }
+    std::cout << std::endl;
+}
