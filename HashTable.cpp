@@ -6,30 +6,28 @@ class HashTable {
 private:
     struct HashEntry {
         int key;
-        int value;
-        bool isOccupied;
         bool isDeleted;
 
-        HashEntry() : key(0), value(0), isOccupied(false), isDeleted(false) {}
+        HashEntry() : key(-1), isDeleted(false) {}
     };
 
     std::vector<HashEntry> table;
     int size;
     int count;
-    const double loadFactorThreshold = 0.8;
+    double loadFactorThreshold = 0.8;
 
     // Hash function to map keys
-    int hash(int key) const {
+    int hash(int key) {
         return key % size;
     }
 
     // Quadratic probing function
-    int quadraticProbe(int key, int i) const {
+    int quadraticProbe(int key, int i) {
         return (hash(key) + i * i) % size;
     }
 
     // Check if a number is prime
-    bool isPrime(int num) const {
+    bool isPrime(int num) {
         if (num <= 1) return false;
         if (num == 2) return true;
         if (num % 2 == 0) return false;
@@ -40,7 +38,7 @@ private:
     }
 
     // Get the next prime number greater than the current number
-    int nextPrime(int num) const {
+    int nextPrime(int num) {
         while (!isPrime(num)) {
             num++;
         }
@@ -49,21 +47,27 @@ private:
 
     // Resize and rehash the hash table
     void resize() {
-        int oldSize = size;
         int newSize = nextPrime(2 * size);
-        std::vector<HashEntry> oldTable = table;
-
-        // Initialize the new table
-        table = std::vector<HashEntry>(newSize);
-        size = newSize;
-        count = 0;
+        std::vector<HashEntry> newTable(newSize);
 
         // Rehash all current keys into the new table
-        for (int i = 0; i < oldSize; i++) {
-            if (oldTable[i].isOccupied && !oldTable[i].isDeleted) {
-                insert(oldTable[i].key, oldTable[i].value);
+        for (int i = 0; i < size; i++) {
+            if (table[i].key != -1 && !table[i].isDeleted) {
+                int newKey = table[i].key;
+                int j = 0;
+                int newIndex;
+                do {
+                    newIndex = (newKey % newSize + j * j) % newSize;  // Use newSize here
+                    j++;
+                } while (newTable[newIndex].key != -1);
+
+                newTable[newIndex].key = newKey;
+                newTable[newIndex].isDeleted = false;
             }
         }
+
+        table = newTable;
+        size = newSize;
     }
 
 public:
@@ -73,117 +77,78 @@ public:
     }
 
     // Insert function using quadratic probing and handling deleted slots
-    void insert(int key, int value) {
-        // Resize the table if the load factor threshold is exceeded
-        if ((double)(count + 1) / size > loadFactorThreshold) {
-            resize();
+    void insert(int key) {
+        if ((double)count / size >= loadFactorThreshold) {
+            resize();  // Resize the table if the load factor threshold is exceeded
         }
 
         int i = 0;
         int index;
         int firstDeletedIndex = -1;  // Track the first deleted index found
-
-        while (i < size) {
+        do {
             index = quadraticProbe(key, i);
-
-            if (!table[index].isOccupied) {
-                if (table[index].isDeleted) {
-                    if (firstDeletedIndex == -1) {
-                        firstDeletedIndex = index;
-                    }
-                } else {
-                    // Empty and never occupied
-                    break;
-                }
-            } else if (table[index].isOccupied && table[index].key == key) {
-                // Key already exists, update the value
-                table[index].value = value;
-                return;
-            }
             i++;
-        }
 
-        if (firstDeletedIndex != -1) {
-            index = firstDeletedIndex;
-        }
+            // Track the first deleted index to use later if necessary
+            if (table[index].isDeleted && firstDeletedIndex == -1) {
+                firstDeletedIndex = index;
+            }
+        } while (table[index].key != -1 && !table[index].isDeleted && table[index].key != key);
 
-        // Insert the new key-value pair
-        table[index].key = key;
-        table[index].value = value;
-        table[index].isOccupied = true;
-        table[index].isDeleted = false;
-        count++;
+        // If we find an empty slot, or a previously deleted slot, insert the key
+        if (table[index].key == -1 || table[index].isDeleted) {
+            // Prefer inserting into the first deleted index, if available
+            if (firstDeletedIndex != -1) {
+                index = firstDeletedIndex;
+            }
+            table[index].key = key;
+            table[index].isDeleted = false;
+            count++;
+        }
     }
 
     // Search function using quadratic probing
-    bool search(int key, int &value) const {
+    int search(int key) {
         int i = 0;
         int index;
-
-        while (i < size) {
-            index = (hash(key) + i * i) % size;
-
-            if (!table[index].isOccupied) {
-                if (!table[index].isDeleted) {
-                    // Slot is empty and never occupied; key not present
-                    return false;
-                }
-                // Slot was deleted; continue searching
-            } else if (table[index].isOccupied && table[index].key == key) {
-                value = table[index].value;
-                return true;
-            }
+        do {
+            index = quadraticProbe(key, i);
             i++;
-        }
-        return false;  // Key not found after probing all slots
+            if (table[index].key == -1 && !table[index].isDeleted) {
+                return -1;  // Key not found
+            }
+        } while (table[index].key != key && i < size);
+
+        return (table[index].key == key) ? index : -1;  // Return index if found, else -1
     }
 
     // Remove function marking a key as deleted
-    bool remove(int key) {
+    void remove(int key) {
         int i = 0;
         int index;
-
-        while (i < size) {
-            index = (hash(key) + i * i) % size;
-
-            if (!table[index].isOccupied) {
-                if (!table[index].isDeleted) {
-                    // Slot is empty and never occupied; key not present
-                    return false;
-                }
-                // Slot was deleted; continue searching
-            } else if (table[index].isOccupied && table[index].key == key) {
-                // Mark as deleted
-                table[index].isDeleted = true;
-                table[index].isOccupied = false;
-                count--;
-                return true;
-            }
+        do {
+            index = quadraticProbe(key, i);
             i++;
+            if (table[index].key == -1 && !table[index].isDeleted) {
+                return;  // Key not found, nothing to remove
+            }
+        } while (table[index].key != key && i < size);
+
+        if (table[index].key == key) {
+            table[index].isDeleted = true;
+            count--;
         }
-        return false;  // Key not found
     }
 
     // Print the contents of the hash table
-    void printTable() const {
+    void printTable() {
         for (int i = 0; i < size; i++) {
-            if (table[i].isOccupied && !table[i].isDeleted) {
-                std::cout << "(" << table[i].key << ", " << table[i].value << ") ";
+            if (table[i].key != -1 && !table[i].isDeleted) {
+                std::cout << table[i].key << " ";
             } else {
                 std::cout << "- ";
             }
         }
         std::cout << std::endl;
     }
-
-    // Get current size of the table
-    int getSize() const {
-        return size;
-    }
-
-    // Get current count of elements
-    int getCount() const {
-        return count;
-    }
 };
-
