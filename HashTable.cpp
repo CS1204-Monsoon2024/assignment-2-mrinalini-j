@@ -28,11 +28,15 @@ private:
 
     // Check if a number is prime
     bool isPrime(int num) {
-        if (num <= 1) return false;
-        if (num == 2) return true;
-        if (num % 2 == 0) return false;
+        if (num <= 1)
+            return false;
+        if (num == 2)
+            return true;
+        if (num % 2 == 0)
+            return false;
         for (int i = 3; i * i <= num; i += 2) {
-            if (num % i == 0) return false;
+            if (num % i == 0)
+                return false;
         }
         return true;
     }
@@ -57,10 +61,9 @@ private:
                 int j = 0;
                 int newIndex;
                 do {
-                    newIndex = (newKey % newSize + j * j) % newSize;  // Use newSize here
+                    newIndex = (newKey % newSize + j * j) % newSize;
                     j++;
                 } while (newTable[newIndex].key != -1);
-
                 newTable[newIndex].key = newKey;
                 newTable[newIndex].isDeleted = false;
             }
@@ -78,32 +81,45 @@ public:
 
     // Insert function using quadratic probing and handling deleted slots
     void insert(int key) {
-        if ((double)count / size >= loadFactorThreshold) {
-            resize();  // Resize the table if the load factor threshold is exceeded
+        // Check for duplicate key
+        if (search(key) != -1) {
+            std::cout << "Duplicate key insertion is not allowed" << std::endl;
+            return;
+        }
+
+        // Resize if necessary
+        if ((double)(count + 1) / size >= loadFactorThreshold) {
+            resize();
         }
 
         int i = 0;
         int index;
-        int firstDeletedIndex = -1;  // Track the first deleted index found
-        do {
+        int firstAvailableIndex = -1;
+
+        while (i < size) {
             index = quadraticProbe(key, i);
+
+            if (table[index].key == -1 && !table[index].isDeleted) {
+                // Empty slot found
+                if (firstAvailableIndex == -1) {
+                    firstAvailableIndex = index;
+                }
+                break;  // No need to probe further
+            } else if (table[index].isDeleted) {
+                // Deleted slot found
+                if (firstAvailableIndex == -1) {
+                    firstAvailableIndex = index;
+                }
+            }
             i++;
+        }
 
-            // Track the first deleted index to use later if necessary
-            if (table[index].isDeleted && firstDeletedIndex == -1) {
-                firstDeletedIndex = index;
-            }
-        } while (table[index].key != -1 && !table[index].isDeleted && table[index].key != key);
-
-        // If we find an empty slot, or a previously deleted slot, insert the key
-        if (table[index].key == -1 || table[index].isDeleted) {
-            // Prefer inserting into the first deleted index, if available
-            if (firstDeletedIndex != -1) {
-                index = firstDeletedIndex;
-            }
-            table[index].key = key;
-            table[index].isDeleted = false;
+        if (firstAvailableIndex != -1) {
+            table[firstAvailableIndex].key = key;
+            table[firstAvailableIndex].isDeleted = false;
             count++;
+        } else {
+            std::cout << "Max probing limit reached!" << std::endl;
         }
     }
 
@@ -111,32 +127,42 @@ public:
     int search(int key) {
         int i = 0;
         int index;
-        do {
+
+        while (i < size) {
             index = quadraticProbe(key, i);
-            i++;
+
             if (table[index].key == -1 && !table[index].isDeleted) {
                 return -1;  // Key not found
+            } else if (table[index].key == key && !table[index].isDeleted) {
+                return index;  // Key found
             }
-        } while (table[index].key != key && i < size);
-
-        return (table[index].key == key) ? index : -1;  // Return index if found, else -1
+            i++;
+        }
+        return -1;  // Key not found after full probing
     }
 
     // Remove function marking a key as deleted
     void remove(int key) {
         int i = 0;
         int index;
-        do {
-            index = quadraticProbe(key, i);
-            i++;
-            if (table[index].key == -1 && !table[index].isDeleted) {
-                return;  // Key not found, nothing to remove
-            }
-        } while (table[index].key != key && i < size);
+        bool found = false;
 
-        if (table[index].key == key) {
-            table[index].isDeleted = true;
-            count--;
+        while (i < size) {
+            index = quadraticProbe(key, i);
+
+            if (table[index].key == -1 && !table[index].isDeleted) {
+                break;  // Key not found
+            } else if (table[index].key == key && !table[index].isDeleted) {
+                table[index].isDeleted = true;
+                count--;
+                found = true;
+                break;
+            }
+            i++;
+        }
+
+        if (!found) {
+            std::cout << "Element not found" << std::endl;
         }
     }
 
